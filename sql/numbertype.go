@@ -100,6 +100,7 @@ type NumberType interface {
 
 type numberTypeImpl struct {
 	baseType query.Type
+	length   int64
 }
 
 var _ Type = numberTypeImpl{}
@@ -112,6 +113,19 @@ func CreateNumberType(baseType query.Type) (NumberType, error) {
 		sqltypes.Int32, sqltypes.Uint32, sqltypes.Int64, sqltypes.Uint64, sqltypes.Float32, sqltypes.Float64:
 		return numberTypeImpl{
 			baseType: baseType,
+		}, nil
+	}
+	return nil, fmt.Errorf("%v is not a valid number base type", baseType.String())
+}
+
+// CreateNumberTypeWithLength creates a NumberType with length
+func CreateNumberTypeWithLength(baseType query.Type, length int64) (NumberType, error) {
+	switch baseType {
+	case sqltypes.Int8, sqltypes.Uint8, sqltypes.Int16, sqltypes.Uint16, sqltypes.Int24, sqltypes.Uint24,
+		sqltypes.Int32, sqltypes.Uint32, sqltypes.Int64, sqltypes.Uint64, sqltypes.Float32, sqltypes.Float64:
+		return numberTypeImpl{
+			baseType: baseType,
+			length:   length,
 		}, nil
 	}
 	return nil, fmt.Errorf("%v is not a valid number base type", baseType.String())
@@ -609,11 +623,16 @@ func (t numberTypeImpl) SQL2(v Value) (sqltypes.Value, error) {
 
 // String implements Type interface.
 func (t numberTypeImpl) String() string {
+	sizeInfo := ""
+	if t.length > 0 {
+		sizeInfo = fmt.Sprintf("(%d)", t.length)
+	}
+
 	switch t.baseType {
 	case sqltypes.Int8:
-		return "TINYINT"
+		return "TINYINT" + sizeInfo
 	case sqltypes.Uint8:
-		return "TINYINT UNSIGNED"
+		return "TINYINT UNSIGNED" + sizeInfo
 	case sqltypes.Int16:
 		return "SMALLINT"
 	case sqltypes.Uint16:
